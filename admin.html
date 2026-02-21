@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Responses Admin</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="antialiased p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center md:text-left">Contact Form Responses</h1>
+
+        <div class="bg-[#1e293b] rounded-lg shadow-xl overflow-hidden border border-gray-700">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="bg-gray-800 border-b border-gray-700">
+                            <th class="p-4 font-semibold text-gray-300 w-48">Date/Time</th>
+                            <th class="p-4 font-semibold text-gray-300 w-48">Name</th>
+                            <th class="p-4 font-semibold text-gray-300 w-64">Email</th>
+                            <th class="p-4 font-semibold text-gray-300 w-64">Subject</th>
+                            <th class="p-4 font-semibold text-gray-300">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="messages-table-body">
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-400">Loading messages from database...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // Use the exact same config from your index.html
+        const firebaseConfig = {
+            apiKey: "AIzaSyC3IOtLqaR6kK104Z5bLzJKpwuK4PPjrg8",
+            authDomain: "portfolio-d9416.firebaseapp.com",
+            databaseURL: "https://portfolio-d9416-default-rtdb.firebaseio.com",
+            projectId: "portfolio-d9416",
+            storageBucket: "portfolio-d9416.firebasestorage.app",
+            messagingSenderId: "68403861578",
+            appId: "1:68403861578:web:35163a6e9f75b02e262eb3",
+            measurementId: "G-H2BTKEGY92"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Reference to the messages node
+        const messagesRef = database.ref('messages');
+        const tableBody = document.getElementById('messages-table-body');
+
+        // Listen for data changes in real-time
+        messagesRef.on('value', (snapshot) => {
+            const messages = snapshot.val();
+
+            if (!messages) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">No messages found.</td></tr>';
+                return;
+            }
+
+            // Clear the "loading" message
+            tableBody.innerHTML = '';
+
+            // Convert to array so we can sort by newest first
+            const messagesArray = Object.keys(messages).map(key => ({
+                id: key,
+                ...messages[key]
+            })).sort((a, b) => {
+                // Handle cases where timestamp might be missing
+                const timeA = a.timestamp || 0;
+                const timeB = b.timestamp || 0;
+                return timeB - timeA; // newest first
+            });
+
+            // Loop through messages and create rows
+            messagesArray.forEach((msg) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-700 hover:bg-gray-800 transition-colors';
+
+                // Format date nicely
+                const dateObj = msg.timestamp ? new Date(msg.timestamp) : new Date();
+                const dateStr = dateObj.toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                tr.innerHTML = `
+                    <td class="p-4 text-sm text-gray-400 whitespace-nowrap">${dateStr}</td>
+                    <td class="p-4 font-medium text-white">${escapeHTML(msg.name)}</td>
+                    <td class="p-4"><a href="mailto:${escapeHTML(msg.email)}" class="text-blue-400 hover:text-blue-300 transition-colors">${escapeHTML(msg.email)}</a></td>
+                    <td class="p-4 text-gray-300">${escapeHTML(msg.subject)}</td>
+                    <td class="p-4 text-gray-400 whitespace-pre-wrap">${escapeHTML(msg.message)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        });
+
+        // Simple helper to prevent HTML injection errors (XSS)
+        function escapeHTML(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>
